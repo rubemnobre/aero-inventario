@@ -13,3 +13,14 @@ create table Itens(
     primary key (ID),
     foreign key (LocalID) references Locais(ID) on delete no action on update cascade
 );
+
+create table Log(
+    ID int auto_increment,
+    LocalAntID int,
+    LocalNovoID int,
+    ItemID int,
+    Quando datetime,
+    primary key (ID),
+    foreign key (LocalAntID) references Locais(ID) on delete no action on update cascade,
+    foreign key (LocalNovoID) references Locais(ID) on delete no action on update cascade
+);

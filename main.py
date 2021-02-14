@@ -1,6 +1,10 @@
 import mysql.connector
 from mysql.connector import Error
 
+## Coisas a adicionar:
+# Remover itens
+# Quantidades
+
 def table(names, lista):
     ncols = len(lista[0])
     nrows = len(lista)
@@ -48,7 +52,8 @@ while True:
     print('2 - Mover item')
     print('3 - Adicionar item')
     print('4 - Adicionar local')
-    print('5 - Sair')
+    print('4 - Ver Log')
+    print('6 - Sair')
     print('Escolha: ', end='')
     opt = input()
     if opt == '1':
@@ -121,6 +126,16 @@ while True:
         except Error as e:
             print(e)
     if opt == '4': # Adicionar local
-        print("Nao implementado")
-    if opt == '5': # Sair
+        try:
+            print('Nome do local: ', end='')
+            nome = input()
+            print('Endereco: ', end='')
+            end = input()
+            cursor.execute('insert into Locais(Nome, Endereco) values("%s", "%s")' %(nome, end))
+        except Error as e:
+            print(e)
+    if opt == '5': # Ver Log
+        cursor.execute('select a.Nome, b.Nome, Log.Quando from Log join Locais a on Log.LocalAntID = a.ID join Locais b on Log.LocalNovoID = b.ID;')
+        table(['Origem', 'Novo Local', 'Data'], cursor.fetchall())
+    if opt == '6': # Sair
         break

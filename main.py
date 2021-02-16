@@ -2,7 +2,7 @@ import mysql.connector
 from mysql.connector import Error
 
 ## Coisas a adicionar:
-# Remover itens
+# Remover Itens
 # Quantidades
 
 def table(names, lista):
@@ -39,17 +39,18 @@ def table(names, lista):
     print('+')
 
 server = mysql.connector.connect(
-    host = 'localhost',
-    user = 'rubem',
-    password = '123',
-    database = 'financeiro'
+    host = 'sql10.freemysqlhosting.net',
+    port = '3306',
+    user = 'sql10393418',
+    password = 'BJwg6iCman',
+    database = 'sql10393418'
 )
 
 cursor = server.cursor()
 
 while True:
-    print('1 - Ver inventario')
-    print('2 - Modificar inventario')
+    print('1 - Ver Inventario')
+    print('2 - Modificar Inventario')
     print('3 - Adicionar item')
     print('4 - Adicionar local')
     print('5 - Ver Log')
@@ -62,20 +63,20 @@ while True:
             table(['Item', 'Local', 'Quantidade', 'Ult. Mov.'], cursor.fetchall())
         except Error as e:
             print(e)
-    if opt == '2': # Modificar inventario
-        print('1 - Mover itens')
-        print('2 - Adicionar itens')
-        print('3 - Remover itens')
+    if opt == '2': # Modificar Inventario
+        print('1 - Mover Itens')
+        print('2 - Adicionar Itens')
+        print('3 - Remover Itens')
         print('Escolher opcao: ', end = '')
         opt1 = input()
         if opt1 == '1':
             try:
-                cursor.execute("select inventario.id, Itens.Nome, Locais.Nome, Inventario.Qnt, Inventario.UltimoMov from Inventario join Itens on Itens.ID = Inventario.ItemID join Locais on Locais.ID = Inventario.LocalID")
+                cursor.execute("select Inventario.ID, Itens.Nome, Locais.Nome, Inventario.Qnt, Inventario.UltimoMov from Inventario join Itens on Itens.ID = Inventario.ItemID join Locais on Locais.ID = Inventario.LocalID")
                 table(['ID', 'Local', 'Item', 'Quantidade', 'Ult. Mov.'], cursor.fetchall())
                 print('Escolher origem: ', end = '')
                 origemID = input()
 
-                cursor.execute("select ID, ItemID, Qnt, LocalID from inventario")
+                cursor.execute("select ID, ItemID, Qnt, LocalID from Inventario")
                 entradas = cursor.fetchall()
                 origem = [entrada for entrada in entradas if entrada[0] == int(origemID)][0]
 
@@ -106,7 +107,7 @@ while True:
                 print(e)
         if opt1 == '2':
             try:
-                cursor.execute("select ID, ItemID, Qnt, LocalID from inventario")
+                cursor.execute("select ID, ItemID, Qnt, LocalID from Inventario")
                 entradas = cursor.fetchall()
 
                 cursor.execute("select ID, Nome from Itens")
@@ -138,12 +139,12 @@ while True:
                 print(e)
         if opt1 == '3':
             try:
-                cursor.execute("select inventario.id, Itens.Nome, Locais.Nome, Inventario.Qnt, Inventario.UltimoMov from Inventario join Itens on Itens.ID = Inventario.ItemID join Locais on Locais.ID = Inventario.LocalID")
+                cursor.execute("select Inventario.ID, Itens.Nome, Locais.Nome, Inventario.Qnt, Inventario.UltimoMov from Inventario join Itens on Itens.ID = Inventario.ItemID join Locais on Locais.ID = Inventario.LocalID")
                 table(['ID', 'Local', 'Item', 'Quantidade', 'Ult. Mov.'], cursor.fetchall())
                 print('Escolher origem: ', end = '')
                 origemID = input()
 
-                cursor.execute("select ID, ItemID, Qnt, LocalID from inventario")
+                cursor.execute("select ID, ItemID, Qnt, LocalID from Inventario")
                 entradas = cursor.fetchall()
                 origem = [entrada for entrada in entradas if entrada[0] == int(origemID)][0]
 
@@ -182,7 +183,7 @@ while True:
         except Error as e:
             print(e)
     if opt == '5': # Ver Log
-        cursor.execute('select Locais.Nome, Itens.Nome, Log.Delta, Log.Quando from Log join locais on locais.id = log.localid join itens on itens.id = log.itemid')
+        cursor.execute('select Locais.Nome, Itens.Nome, Log.Delta, Log.Quando from Log join Locais on Locais.ID = Log.LocalID join Itens on Itens.ID = Log.ItemID')
         table(['Local', 'Item', 'Delta', 'Quando'], cursor.fetchall())
     if opt == '6': # Sair
         break

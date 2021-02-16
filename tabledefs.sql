@@ -29,5 +29,6 @@ create table Log(
     Delta int,
     Quando datetime,
     primary key (ID),
-    foreign key (LocalID) references Locais(ID) on delete no action on update cascade
+    foreign key (LocalID) references Locais(ID) on delete no action on update cascade,
+    foreign key (ItemID) references Itens(ID) on delete no action on update cascade
 );

@@ -42,85 +42,130 @@ server = mysql.connector.connect(
     host = 'localhost',
     user = 'rubem',
     password = '123',
-    database = 'inventario'
+    database = 'financeiro'
 )
 
 cursor = server.cursor()
 
 while True:
-    print('1 - Ver itens')
-    print('2 - Mover item')
+    print('1 - Ver inventario')
+    print('2 - Modificar inventario')
     print('3 - Adicionar item')
     print('4 - Adicionar local')
-    print('4 - Ver Log')
+    print('5 - Ver Log')
     print('6 - Sair')
     print('Escolha: ', end='')
     opt = input()
     if opt == '1':
         try:
-            cursor.execute("select Itens.Nome, Locais.Nome, Itens.UltimoMov from Locais join Itens on Itens.LocalID = Locais.ID")
-            table(['Item', 'Local', 'Ultimo Mov.'], cursor.fetchall())
+            cursor.execute("select Itens.Nome, Locais.Nome, Inventario.Qnt, Inventario.UltimoMov from Inventario join Itens on Itens.ID = Inventario.ItemID join Locais on Locais.ID = Inventario.LocalID")
+            table(['Item', 'Local', 'Quantidade', 'Ult. Mov.'], cursor.fetchall())
         except Error as e:
             print(e)
-    if opt == '2': # Mover item
-        itens = []
-        locais = []
-        try:
-            cursor.execute("select Itens.ID, Itens.Nome, Locais.Nome from Itens join Locais on Itens.LocalID = Locais.ID")
-            itens = cursor.fetchall()
-            cursor.execute("select ID, Nome from Locais")
-            locais = cursor.fetchall()
-        except Error as e:
-            print(e)
-        finally:
-            table(['ID', 'Nome', 'Loc. Atual'], itens)
-            ids = []
-            for item in itens:
-                ids.append(item[0])
-            idItem = 0
-            while idItem not in ids:
-                print('Escolher item: ', end = '')
-                try:
-                    idItem = int(input())
-                except:
-                    print('Valor invalido')
-            
-            table(['ID', 'Nome'], locais)
-            ids = []
-            for local in locais:
-                ids.append(local[0])
-            idLocal = 0
-            while idLocal not in ids:
-                print('Escolher local: ', end = '')
-                try:
-                    idLocal = int(input())
-                except:
-                    print('Valor invalido')
+    if opt == '2': # Modificar inventario
+        print('1 - Mover itens')
+        print('2 - Adicionar itens')
+        print('3 - Remover itens')
+        print('Escolher opcao: ', end = '')
+        opt1 = input()
+        if opt1 == '1':
             try:
-                cursor.execute('update Itens set LocalID = %d, UltimoMov = NOW() where ID = %d' % (idLocal, idItem))
+                cursor.execute("select inventario.id, Itens.Nome, Locais.Nome, Inventario.Qnt, Inventario.UltimoMov from Inventario join Itens on Itens.ID = Inventario.ItemID join Locais on Locais.ID = Inventario.LocalID")
+                table(['ID', 'Local', 'Item', 'Quantidade', 'Ult. Mov.'], cursor.fetchall())
+                print('Escolher origem: ', end = '')
+                origemID = input()
+
+                cursor.execute("select ID, ItemID, Qnt, LocalID from inventario")
+                entradas = cursor.fetchall()
+                origem = [entrada for entrada in entradas if entrada[0] == int(origemID)][0]
+
+                cursor.execute("select ID, Nome from Locais")
+                table(['ID', 'Nome'], [local for local in cursor.fetchall() if local[0] != origem[3]])
+                print('Escolher local final (ID): ', end='')
+                localID = int(input())
+                print('Escolher quantidade a mover (<= %d): ' % origem[2], end = '')
+                qnt = int(input())
+                novo = True
+                for entrada in entradas:
+                    if localID == entrada[3]:
+                        if origem[1] == entrada[1]:
+                            cursor.execute('update Inventario set Qnt = %d where ID = %d' % (entrada[2] + qnt, entrada[0]))
+                            novo = False
+                if novo:
+                    cursor.execute('insert into Inventario(LocalID, ItemID, Qnt, UltimoMov) values (%d, %d, %d, NOW())' % (localID, origem[1], qnt))
+                if origem[2] != qnt:
+                    cursor.execute('update Inventario set Qnt = %d where ID = %d' % (origem[2] - qnt, origem[0]))
+                else:
+                    cursor.execute('delete from Inventario where ID = %d' % origem[0])
+                
+                cursor.execute('insert into Log(LocalID, ItemID, Delta, Quando) values(%d, %d, %d, NOW())' % (  localID, origem[1],  qnt))
+                cursor.execute('insert into Log(LocalID, ItemID, Delta, Quando) values(%d, %d, %d, NOW())' % (origem[3], origem[1], -qnt))
                 server.commit()
-                print('Sucesso!')
+                print("Sucesso!")
             except Error as e:
                 print(e)
+        if opt1 == '2':
+            try:
+                cursor.execute("select ID, ItemID, Qnt, LocalID from inventario")
+                entradas = cursor.fetchall()
+
+                cursor.execute("select ID, Nome from Itens")
+                table(['ID', 'Nome'], cursor.fetchall())
+                print('Escolher item: ', end='')
+                itemID = int(input())
+
+                cursor.execute("select ID, Nome from Locais")
+                table(['ID', 'Nome'], cursor.fetchall())
+                print('Escolher local: ', end='')
+                localID = int(input())
+
+                print('Quantidade: ', end='')
+                qnt = int(input())
+
+                novo = True
+                for entrada in entradas:
+                    if localID == entrada[3]:
+                        if itemID == entrada[1]:
+                            cursor.execute('update Inventario set Qnt = %d where ID = %d' % (entrada[2] + qnt, entrada[0]))
+                            novo = False
+                if novo:
+                    cursor.execute('insert into Inventario(LocalID, ItemID, Qnt, UltimoMov) values (%d, %d, %d, NOW())' % (localID, itemID, qnt))
+                
+                cursor.execute('insert into Log(LocalID, ItemID, Delta, Quando) values(%d, %d, %d, NOW())' % (localID, itemID, qnt))
+                server.commit()
+                print("Sucesso!")
+            except Error as e:
+                print(e)
+        if opt1 == '3':
+            try:
+                cursor.execute("select inventario.id, Itens.Nome, Locais.Nome, Inventario.Qnt, Inventario.UltimoMov from Inventario join Itens on Itens.ID = Inventario.ItemID join Locais on Locais.ID = Inventario.LocalID")
+                table(['ID', 'Local', 'Item', 'Quantidade', 'Ult. Mov.'], cursor.fetchall())
+                print('Escolher origem: ', end = '')
+                origemID = input()
+
+                cursor.execute("select ID, ItemID, Qnt, LocalID from inventario")
+                entradas = cursor.fetchall()
+                origem = [entrada for entrada in entradas if entrada[0] == int(origemID)][0]
+
+                print("Quantidade a remover (< %d): " % origem[2])
+                qnt = int(input())
+                
+                if origem[2] != qnt:
+                    cursor.execute('update Inventario set Qnt = %d where ID = %d' % (origem[2] - qnt, origem[0]))
+                else:
+                    cursor.execute('delete from Inventario where ID = %d' % origem[0])
+                cursor.execute('insert into Log(LocalID, ItemID, Delta, Quando) values(%d, %d, %d, NOW())' % (origem[3], origem[1], -qnt))
+                server.commit()
+                print("Sucesso!")
+            except Error as e:
+                print(e)
+
             
     if opt == '3': # Adicionar item
         try:
             print('Nome do item: ', end='')
             nome = input()
-            cursor.execute("select ID, Nome from Locais")
-            print('ID\tNome')
-            ids = []
-            for local in cursor.fetchall():
-                print('%d\t%s' % (local[0], local[1]))
-                ids.append(local[0])
-            idLocal = 0
-            while idLocal not in ids:
-                print('Escolher local: ', end = '')
-                try:
-                    idLocal = int(input())
-                except:
-                    print('Valor invalido')
-            cursor.execute('insert into Itens(Nome, UltimoMov, LocalID) values("%s", NOW(), %d)' %(nome, idLocal))
+            cursor.execute('insert into Itens(Nome) values("%s")' % nome)
             server.commit()
             print('Sucesso!')
         except Error as e:
@@ -130,12 +175,14 @@ while True:
             print('Nome do local: ', end='')
             nome = input()
             print('Endereco: ', end='')
-            end = input()
-            cursor.execute('insert into Locais(Nome, Endereco) values("%s", "%s")' %(nome, end))
+            endereco = input()
+            cursor.execute('insert into Locais(Nome, Endereco) values("%s", "%s")' % (nome, endereco))
+            server.commit()
+            print('Sucesso!')
         except Error as e:
             print(e)
     if opt == '5': # Ver Log
-        cursor.execute('select a.Nome, b.Nome, Log.Quando from Log join Locais a on Log.LocalAntID = a.ID join Locais b on Log.LocalNovoID = b.ID;')
-        table(['Origem', 'Novo Local', 'Data'], cursor.fetchall())
+        cursor.execute('select Locais.Nome, Itens.Nome, Log.Delta, Log.Quando from Log join locais on locais.id = log.localid join itens on itens.id = log.itemid')
+        table(['Local', 'Item', 'Delta', 'Quando'], cursor.fetchall())
     if opt == '6': # Sair
         break

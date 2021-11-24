@@ -1,13 +1,36 @@
 from mysql.connector import Error, connect
+from mysql.connector.connection import MySQLConnection
 from table import table
+from getpass import getpass
 
-server = connect( # Conectar ao servidor
-    host = 'sql10.freemysqlhosting.net',
-    port = '3306',
-    user = 'sql10393418',
-    password = 'BJwg6iCman',
-    database = 'sql10393418'
-)
+def safe_input(prompt, good_vals):
+    qnt = None
+    while qnt not in good_vals:
+        try:
+            qnt = int(input(prompt))
+        except:
+            print('Erro na entrada')
+    return qnt
+
+
+server = MySQLConnection()
+
+good = False
+while not good:
+    usr = input("Nome de usuario: ")
+    pwd = getpass("Senha: ")
+    try:
+        server.connect( # Conectar ao servidor
+            host = 'financeiro-aero.mysql.uhserver.com',
+            port = '3306',
+            user = usr,
+            password = pwd,
+            database = 'financeiro_aero'
+        )
+        good = True
+    except:
+        print("Erro na conexão!")
+        good = False
 
 cursor = server.cursor()
 
@@ -20,26 +43,25 @@ while True:
     print('4 - Adicionar local')
     print('5 - Ver Log')
     print('6 - Sair')
-    print('Escolha: ', end='')
-    opt = input()
-    if opt == '1': # Ver inventário
+    opt = safe_input('Escolher opcao: ', [1, 2, 3, 4, 5, 6])
+    if opt == 1: # Ver inventário
         try:
             cursor.execute("select Itens.Nome, Locais.Nome, Inventario.Qnt, Inventario.UltimoMov from Inventario join Itens on Itens.ID = Inventario.ItemID join Locais on Locais.ID = Inventario.LocalID")
             table(['Item', 'Local', 'Quantidade', 'Ult. Mov.'], cursor.fetchall())
         except Error as e:
             print(e)
-    if opt == '2': # Modificar Inventario
+    if opt == 2: # Modificar Inventario
         print('1 - Mover Itens')
         print('2 - Adicionar Itens')
         print('3 - Remover Itens')
-        print('Escolher opcao: ', end = '')
-        opt1 = input()
-        if opt1 == '1': # Mover itens do inventario
+        print('4 - Voltar')
+        opt1 = safe_input('Escolher opcao: ', [1, 2, 3, 4])
+        if opt1 == 1: # Mover itens do inventario
             try:
                 cursor.execute("select Inventario.ID, Itens.Nome, Locais.Nome, Inventario.Qnt, Inventario.UltimoMov from Inventario join Itens on Itens.ID = Inventario.ItemID join Locais on Locais.ID = Inventario.LocalID")
-                table(['ID', 'Local', 'Item', 'Quantidade', 'Ult. Mov.'], cursor.fetchall())
-                print('Escolher origem: ', end = '')
-                origemID = input()
+                itens = cursor.fetchall()
+                table(['ID', 'Local', 'Item', 'Quantidade', 'Ult. Mov.'], itens)
+                origemID = safe_input('Escolher origem: ', [ent[0] for ent in itens])
 
                 # Coletar dados da entrada de origem
                 cursor.execute("select ID, ItemID, Qnt, LocalID from Inventario")
@@ -47,12 +69,11 @@ while True:
                 origem = [entrada for entrada in entradas if entrada[0] == int(origemID)][0]
 
                 cursor.execute("select ID, Nome from Locais")
-                table(['ID', 'Nome'], [local for local in cursor.fetchall() if local[0] != origem[3]])
-                print('Escolher local final (ID): ', end='')
-                localID = int(input())
+                locais = cursor.fetchall()
+                table(['ID', 'Nome'], [local for local in locais if local[0] != origem[3]])
+                localID = safe_input('Escolher local final (ID): ', [ent[0] for ent in locais])
 
-                print('Escolher quantidade a mover (<= %d): ' % origem[2], end = '')
-                qnt = int(input())
+                qnt = safe_input('Escolher quantidade a mover (<= %d): ' % origem[2], range(origem[2] + 1))
 
                 # Se já existe entrada do item no local, atualizar, se não, criar entrada
                 novo = True
@@ -78,20 +99,20 @@ while True:
             except Error as e:
                 print(e)
 
-        if opt1 == '2': # Adicionar itens
+        if opt1 == 2: # Adicionar itens
             try:
                 cursor.execute("select ID, ItemID, Qnt, LocalID from Inventario")
                 entradas = cursor.fetchall()
 
                 cursor.execute("select ID, Nome from Itens")
-                table(['ID', 'Nome'], cursor.fetchall())
-                print('Escolher item: ', end='')
-                itemID = int(input())
+                itens = cursor.fetchall()
+                table(['ID', 'Nome'], itens)
+                itemID = safe_input('Escolher item: ', [end[0] for end in itens])
 
                 cursor.execute("select ID, Nome from Locais")
-                table(['ID', 'Nome'], cursor.fetchall())
-                print('Escolher local: ', end='')
-                localID = int(input())
+                locais = cursor.fetchall()
+                table(['ID', 'Nome'], locais)
+                localID = safe_input('Escolher item: ', [end[0] for end in locais])
 
                 print('Quantidade: ', end='')
                 qnt = int(input())
@@ -113,7 +134,7 @@ while True:
             except Error as e:
                 print(e)
 
-        if opt1 == '3': # Remover itens
+        if opt1 == 3: # Remover itens
             try:
                 cursor.execute("select Inventario.ID, Itens.Nome, Locais.Nome, Inventario.Qnt, Inventario.UltimoMov from Inventario join Itens on Itens.ID = Inventario.ItemID join Locais on Locais.ID = Inventario.LocalID")
                 table(['ID', 'Local', 'Item', 'Quantidade', 'Ult. Mov.'], cursor.fetchall())
@@ -140,7 +161,7 @@ while True:
             except Error as e:
                 print(e)
             
-    if opt == '3': # Adicionar item
+    if opt == 3: # Adicionar item
         try:
             print('Nome do item: ', end='')
             nome = input()
@@ -150,7 +171,7 @@ while True:
         except Error as e:
             print(e)
 
-    if opt == '4': # Adicionar local
+    if opt == 4: # Adicionar local
         try:
             print('Nome do local: ', end='')
             nome = input()
@@ -162,9 +183,9 @@ while True:
         except Error as e:
             print(e)
 
-    if opt == '5': # Ver Log
+    if opt == 5: # Ver Log
         cursor.execute('select Locais.Nome, Itens.Nome, Log.Delta, Log.Quando from Log join Locais on Locais.ID = Log.LocalID join Itens on Itens.ID = Log.ItemID')
         table(['Local', 'Item', 'Delta', 'Quando'], cursor.fetchall())
 
-    if opt == '6': # Sair
+    if opt == 6: # Sair
         break
